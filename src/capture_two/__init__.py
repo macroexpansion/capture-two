@@ -1,0 +1,7 @@
+"""Capture Two - A Python-based image editing application."""
+
+__version__ = "0.1.0"
+
+from capture_two.core import ImageProcessor
+
+__all__ = ["ImageProcessor"]
