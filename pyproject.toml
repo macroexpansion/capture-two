@@ -14,8 +14,11 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
+    "colour-science>=0.4.7",
+    "imageio>=2.37.2",
     "numpy>=2.4.2",
     "opencv-python>=4.13.0.92",
+    "pillow>=12.1.1",
     "rawpy>=0.26.1",
     "scipy>=1.17.0",
 ]

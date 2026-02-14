@@ -2,7 +2,9 @@
 
 from typing import Optional
 
+import colour
 import cv2
+import imageio
 import numpy as np
 import rawpy
 
@@ -34,9 +36,11 @@ class ImageProcessor:
                 case Camera.LEICA_M11:
                     rgb16 = raw.postprocess(
                         use_camera_wb=True,
-                        # # no_auto_bright=True,
+                        no_auto_bright=True,
                         output_bps=16,
-                        highlight_mode=rawpy.HighlightMode.Blend,
+                        gamma=(1, 1),  # linear output
+                        # highlight_mode=rawpy.HighlightMode.Blend,
+                        output_color=rawpy.ColorSpace.sRGB,  # type: ignore
                     )
                     self.image = self._convert_to_linear_float(rgb16)
                 case _:
@@ -72,6 +76,20 @@ class ImageProcessor:
             if key == ord("q"):
                 break
         cv2.destroyAllWindows()
+
+    def apply_lut(self, lut_path: str):
+        # Load LUT
+        lut = colour.io.read_LUT(lut_path)
+        # Apply LUT
+        rgb_lut = lut.apply(self.image)
+        # Clip to safe range
+        rgb_lut = np.clip(rgb_lut, 0, 1)
+
+        self.image = rgb_lut
+
+        # Convert back to 16-bit
+        # rgb_16 = (rgb_lut * 65535).astype(np.uint16)
+        # imageio.imwrite("output_porta400.tiff", rgb_16)
 
     def compare(self, edited: np.ndarray) -> None:
         """Display and compare two images side by side using OpenCV."""
