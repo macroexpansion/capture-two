@@ -15,7 +15,9 @@ classifiers = [
 ]
 dependencies = [
     "numpy>=2.4.2",
+    "opencv-python>=4.13.0.92",
     "rawpy>=0.26.1",
+    "scipy>=1.17.0",
 ]
 
 [project.optional-dependencies]
@@ -50,4 +52,10 @@ python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
+
+[dependency-groups]
+dev = [
+    "isort>=7.0.0",
+    "ruff>=0.15.1",
+]
 

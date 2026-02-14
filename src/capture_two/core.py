@@ -1,37 +1,44 @@
 """Core image processing functionality."""
 
+from typing import Optional
+
+import cv2
 import numpy as np
 import rawpy
 
-from .enum import Camera, FilmSimulation
+from .enum import Camera
+from .preset import FilmSimulation
 
 
 class ImageProcessor:
     """Main image processor class for RAW and standard image editing."""
 
-    def __init__(self, camera=Camera.LEICA_M11):
+    def __init__(self, filepath: str, camera=Camera.LEICA_M11):
         self.camera: Camera = camera
-        self.image = None
+        self.image: np.ndarray
         self.metadata = {}
+        self.filepath = filepath
 
-    def apply(self, preset=FilmSimulation.PORTRA_400):
-        pass
+        self._load_dng(self.filepath)
 
-    def _convert_to_linear_float(rgb16):
+    def apply(self, preset: FilmSimulation) -> np.ndarray:
+        return preset(self.image)
+
+    def _convert_to_linear_float(self, rgb16):
         return rgb16.astype(np.float32) / 65535.0
 
-    def load_dng(self, filepath: str) -> None:
+    def _load_dng(self, filepath: str) -> None:
         """Load a RAW image file."""
         with rawpy.imread(filepath) as raw:
             match self.camera:
                 case Camera.LEICA_M11:
                     rgb16 = raw.postprocess(
                         use_camera_wb=True,
-                        no_auto_bright=True,
+                        # # no_auto_bright=True,
                         output_bps=16,
                         highlight_mode=rawpy.HighlightMode.Blend,
                     )
-                    self.image = _convert_to_linear_float(rgb16)
+                    self.image = self._convert_to_linear_float(rgb16)
                 case _:
                     raise ValueError(f"Camera not supported: {self.camera.value}")
 
@@ -42,14 +49,43 @@ class ImageProcessor:
 
     def adjust_exposure(self, stops: float) -> np.ndarray:
         """Adjust image exposure by given stops."""
-        if self.image is None:
-            raise ValueError("No image loaded")
-
         factor = 2**stops
         adjusted = self.image.astype(np.float32) * factor
         return np.clip(adjusted, 0, 255).astype(np.uint8)
 
     def save_image(self, path: str):
-        img = (img * 255).astype(np.uint8)
+        img = (self.image * 255).astype(np.uint8)
         img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
         cv2.imwrite(path, img)
+
+    def display(self, img: Optional[np.ndarray] = None) -> None:
+        """Display the linear float image using OpenCV."""
+        if img is None:
+            img = self.image
+
+        img = (img * 255).astype(np.uint8)
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+
+        cv2.imshow("DNG Image", img)
+        while True:
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord("q"):
+                break
+        cv2.destroyAllWindows()
+
+    def compare(self, edited: np.ndarray) -> None:
+        """Display and compare two images side by side using OpenCV."""
+        img1 = (self.image * 255).astype(np.uint8)
+        img2 = (edited * 255).astype(np.uint8)
+
+        img1 = cv2.cvtColor(img1, cv2.COLOR_RGB2BGR)
+        img2 = cv2.cvtColor(img2, cv2.COLOR_RGB2BGR)
+
+        comparison = np.hstack((img1, img2))
+
+        cv2.imshow("Comparison (Left | Right)", comparison)
+        while True:
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord("q"):
+                break
+        cv2.destroyAllWindows()
