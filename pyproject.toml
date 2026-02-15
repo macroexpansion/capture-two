@@ -16,6 +16,7 @@ classifiers = [
 dependencies = [
     "colour-science>=0.4.7",
     "imageio>=2.37.2",
+    "matplotlib>=3.10.8",
     "numpy>=2.4.2",
     "opencv-python>=4.13.0.92",
     "pillow>=12.1.1",
