@@ -5,6 +5,16 @@ import numpy as np
 from scipy.ndimage import gaussian_filter
 
 
+class ImageFloat:
+    """
+    Represents an image in linear float format.
+    Values are in the range [0, 1].
+    """
+
+    def __init__(self, img: np.ndarray):
+        self.img = img
+
+
 class Effect(ABC):
     """Base class for all effects."""
 
@@ -35,14 +45,19 @@ class SCurve(Effect):
 
 
 class ColorBalance(Effect):
-    def __init__(self, r: float = 1.0, g: float = 1.0, b: float = 1.0):
+    def __init__(
+        self, r: float = 1.0, g: float = 1.0, b: float = 1.0, clip: bool = True
+    ):
         self.r = r
         self.g = g
         self.b = b
         self.matrix = np.array([[self.r, 0, 0], [0, self.g, 0], [0, 0, self.b]])
+        self.clip = clip
 
     def __call__(self, img: np.ndarray) -> np.ndarray:
-        return np.clip(np.dot(img, self.matrix), 0, 1)
+        if self.clip:
+            return np.clip(np.dot(img, self.matrix), 0, 1)
+        return np.dot(img, self.matrix)
 
 
 class MircroContrast(Effect):
@@ -84,3 +99,37 @@ class Clip(Effect):
 
     def __call__(self, img: np.ndarray) -> np.ndarray:
         return np.clip(img, 0, 1)
+
+
+class ContrastToneCurve(Effect):
+    def __init__(
+        self, shadow: float = 0.0, highlight: float = 0.0, p: int = 2, clip: bool = True
+    ):
+        """
+        shadow:  [-1, 1] positive lifts shadows
+        highlight: [-1, 1] positive lifts highlights
+        p: localization strength (2–4 recommended), lower = more localized
+        """
+        self.shadow = shadow
+        self.highlight = highlight
+        self.p = p
+        self.clip = clip
+
+    def __call__(self, img: np.ndarray) -> np.ndarray:
+        # Compute masks
+        w_shadow = (1 - img) ** self.p
+        w_high = img**self.p
+
+        # Nonlinear adjustments
+        shadow_adjust = np.power(img, 1 - self.shadow)
+        highlight_adjust = np.power(img, 1 - self.highlight)
+
+        # Blend
+        result = (
+            img + w_shadow * (shadow_adjust - img) + w_high * (highlight_adjust - img)
+        )
+
+        if self.clip:
+            return np.clip(result, 0, 1)
+
+        return result

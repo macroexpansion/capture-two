@@ -37,9 +37,8 @@ class ImageProcessor:
                     rgb16 = raw.postprocess(
                         use_camera_wb=True,
                         no_auto_bright=True,
+                        bright=3.0,
                         output_bps=16,
-                        gamma=(1, 1),  # linear output
-                        # highlight_mode=rawpy.HighlightMode.Blend,
                         output_color=rawpy.ColorSpace.sRGB,  # type: ignore
                     )
                     self.image = self._convert_to_linear_float(rgb16)
@@ -51,11 +50,12 @@ class ImageProcessor:
                 "daylight": raw.daylight_whitebalance,
             }
 
-    def adjust_exposure(self, stops: float) -> np.ndarray:
+    def adjust_exposure(self, img: np.ndarray, stops: float) -> np.ndarray:
         """Adjust image exposure by given stops."""
         factor = 2**stops
-        adjusted = self.image.astype(np.float32) * factor
-        return np.clip(adjusted, 0, 255).astype(np.uint8)
+        adjusted = img.astype(np.float32) * factor
+        # return np.clip(adjusted, 0, 255).astype(np.uint8)
+        return adjusted
 
     def save_image(self, path: str):
         img = (self.image * 255).astype(np.uint8)
@@ -91,10 +91,10 @@ class ImageProcessor:
         # rgb_16 = (rgb_lut * 65535).astype(np.uint16)
         # imageio.imwrite("output_porta400.tiff", rgb_16)
 
-    def compare(self, edited: np.ndarray) -> None:
+    def compare(self, img1: np.ndarray, img2: np.ndarray) -> None:
         """Display and compare two images side by side using OpenCV."""
-        img1 = (self.image * 255).astype(np.uint8)
-        img2 = (edited * 255).astype(np.uint8)
+        img1 = np.clip((img1 * 255).astype(np.uint8), 0, 255)
+        img2 = np.clip((img2 * 255).astype(np.uint8), 0, 255)
 
         img1 = cv2.cvtColor(img1, cv2.COLOR_RGB2BGR)
         img2 = cv2.cvtColor(img2, cv2.COLOR_RGB2BGR)

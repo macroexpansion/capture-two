@@ -13,7 +13,7 @@ from .effect import (
     Halation,
     HighlightCompression,
     MircroContrast,
-    SCurve,
+    ContrastToneCurve,
 )
 
 
@@ -52,16 +52,15 @@ class Portra400(FilmSimulation):
         img = self._apply_effects(
             img,
             [
-                # HighlightCompression(threshold=0.6),
-                # SCurve(a=0.85, b=0.5),
+                ContrastToneCurve(shadow=-0.2, highlight=-0.2, p=2),
                 # Red slightly up, green slightly up, blue slightly down
-                # ColorBalance(r=1.00, g=1.02, b=0.98),
-                # Soften greens (Portra pastel greens)
-                # ColorBalance(g=0.97),
-                # Reduce blue saturation (Mute Blues)
-                # ColorBalance(b=0.9),
-                # Clip(),
-                MircroContrast(sigma=1.0, amount=0.15),
+                ColorBalance(r=1.01, g=1.02, b=0.97, clip=False),
+                # # Soften greens (Portra pastel greens)
+                ColorBalance(g=0.97, clip=False),
+                # # Reduce blue saturation (Mute Blues)
+                ColorBalance(b=0.97, clip=False),
+                Clip(),
+                MircroContrast(sigma=1.0, amount=0.20),
                 Halation(sigma=6, amount=0.03),
                 Grain(strength=0.005),
                 Clip(),
