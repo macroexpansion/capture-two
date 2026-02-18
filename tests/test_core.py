@@ -12,7 +12,7 @@ class TestImageProcessor:
     def test_init(self):
         """Test processor initialization."""
         processor = ImageProcessor()
-        assert processor.image is None
+        assert processor.linear_rgb is None
         assert processor.metadata == {}
 
     def test_adjust_exposure_no_image(self):

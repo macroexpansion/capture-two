@@ -133,3 +133,60 @@ class ContrastToneCurve(Effect):
             return np.clip(result, 0, 1)
 
         return result
+
+
+class HableFilmicToneCurve(Effect):
+    def __init__(self, exposure=0.0, clip: bool = True):
+        """
+        exposure: stops adjustment (-2 to +2 typical)
+        """
+        self.exposure = exposure
+        self.clip = clip
+
+    def __call__(self, img: np.ndarray) -> np.ndarray:
+        img_f = img
+
+        # Apply exposure
+        img_f *= 2**self.exposure
+
+        # Apply curve
+        result = self._filmic_curve(img_f)
+
+        # Normalize white point
+        white_scale = 1.0 / self._filmic_curve(1.0)
+        result *= white_scale
+
+        if self.clip:
+            return np.clip(result, 0, 1)
+
+        return result
+
+    def _filmic_curve(self, x):
+        # Hable filmic constants (cinematic look)
+        A = 0.22  # stronger highlight compression
+        B = 0.30
+        C = 0.10
+        D = 0.20  # softer shadows
+        E = 0.01  # lifted blacks
+        F = 0.30
+
+        return ((x * (A * x + C * B) + D * E) / (x * (A * x + B) + D * F)) - E / F
+
+
+class Exposure(Effect):
+    def __init__(self, stops: float = 0.0):
+        self.stops = stops
+
+    def __call__(self, img: np.ndarray) -> np.ndarray:
+        return img * 2**self.stops
+
+
+class LinearToSRGB(Effect):
+    def __init__(self):
+        pass
+
+    def __call__(self, img: np.ndarray) -> np.ndarray:
+        return self._linear_to_srgb(img)
+
+    def _linear_to_srgb(self, x: np.ndarray) -> np.ndarray:
+        return np.where(x <= 0.0031308, x * 12.92, 1.055 * (x ** (1 / 2.4)) - 0.055)

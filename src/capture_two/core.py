@@ -17,14 +17,14 @@ class ImageProcessor:
 
     def __init__(self, filepath: str, camera=Camera.LEICA_M11):
         self.camera: Camera = camera
-        self.image: np.ndarray
+        self.linear_rgb: np.ndarray
         self.metadata = {}
         self.filepath = filepath
 
         self._load_dng(self.filepath)
 
     def apply(self, preset: FilmSimulation) -> np.ndarray:
-        return preset(self.image)
+        return preset(self.linear_rgb)
 
     def _convert_to_linear_float(self, rgb16):
         return rgb16.astype(np.float32) / 65535.0
@@ -37,11 +37,11 @@ class ImageProcessor:
                     rgb16 = raw.postprocess(
                         use_camera_wb=True,
                         no_auto_bright=True,
-                        bright=3.0,
                         output_bps=16,
+                        gamma=(1, 1),
                         output_color=rawpy.ColorSpace.sRGB,  # type: ignore
                     )
-                    self.image = self._convert_to_linear_float(rgb16)
+                    self.linear_rgb = self._convert_to_linear_float(rgb16)
                 case _:
                     raise ValueError(f"Camera not supported: {self.camera.value}")
 
@@ -58,14 +58,14 @@ class ImageProcessor:
         return adjusted
 
     def save_image(self, path: str):
-        img = (self.image * 255).astype(np.uint8)
+        img = (self.linear_rgb * 255).astype(np.uint8)
         img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
         cv2.imwrite(path, img)
 
     def display(self, img: Optional[np.ndarray] = None) -> None:
         """Display the linear float image using OpenCV."""
         if img is None:
-            img = self.image
+            img = self.linear_rgb
 
         img = (img * 255).astype(np.uint8)
         img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
@@ -81,11 +81,11 @@ class ImageProcessor:
         # Load LUT
         lut = colour.io.read_LUT(lut_path)
         # Apply LUT
-        rgb_lut = lut.apply(self.image)
+        rgb_lut = lut.apply(self.linear_rgb)
         # Clip to safe range
         rgb_lut = np.clip(rgb_lut, 0, 1)
 
-        self.image = rgb_lut
+        self.linear_rgb = rgb_lut
 
         # Convert back to 16-bit
         # rgb_16 = (rgb_lut * 65535).astype(np.uint16)
