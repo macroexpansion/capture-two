@@ -190,3 +190,32 @@ class LinearToSRGB(Effect):
 
     def _linear_to_srgb(self, x: np.ndarray) -> np.ndarray:
         return np.where(x <= 0.0031308, x * 12.92, 1.055 * (x ** (1 / 2.4)) - 0.055)
+
+
+class LinearToLog(Effect):
+    def __init__(self, min_ev: float = -10, max_ev: float = 6):
+        self.min_ev = min_ev
+        self.max_ev = max_ev
+
+    def __call__(self, img: np.ndarray) -> np.ndarray:
+        return self._linear_to_log(img)
+
+    def _linear_to_log(self, x: np.ndarray):
+        # Convert to stops relative to 1.0
+        ev = np.log2(np.maximum(x, 1e-6))
+
+        # Normalize to 0–1
+        return (ev - self.min_ev) / (self.max_ev - self.min_ev)
+
+
+class LogToLinear(Effect):
+    def __init__(self, min_ev: float = -10, max_ev: float = 6):
+        self.min_ev = min_ev
+        self.max_ev = max_ev
+
+    def __call__(self, img: np.ndarray) -> np.ndarray:
+        return self._log_to_linear(img)
+
+    def _log_to_linear(self, x: np.ndarray):
+        ev = x * (self.max_ev - self.min_ev) + self.min_ev
+        return np.power(2.0, ev)
